@@ -1818,6 +1818,21 @@ static void update_variables(bool in_flight)
          Config.SpuIrq = 1;
    }
 
+#ifdef THREAD_RENDERING
+   var.key = "pcsx_rearmed_gpu_thread_rendering";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if (strcmp(var.value, "disabled") == 0)
+         pl_rearmed_cbs.thread_rendering = THREAD_RENDERING_OFF;
+      else if (strcmp(var.value, "sync") == 0)
+         pl_rearmed_cbs.thread_rendering = THREAD_RENDERING_SYNC;
+      else if (strcmp(var.value, "async") == 0)
+         pl_rearmed_cbs.thread_rendering = THREAD_RENDERING_ASYNC;
+   }
+#endif
+
 #ifdef GPU_PEOPS
    var.value = NULL;
    var.key = "pcsx_rearmed_gpu_peops_odd_even_bit";
@@ -2031,7 +2046,7 @@ static void update_variables(bool in_flight)
             "pcsx_rearmed_gpu_unai_fast_lighting",
             "pcsx_rearmed_gpu_unai_ilace_force",
             "pcsx_rearmed_gpu_unai_pixel_skip",
-            "pcsx_rearmed_gpu_unai_scale_hires"
+            "pcsx_rearmed_gpu_unai_scale_hires",
          };
 
          option_display.visible = show_advanced_gpu_unai_settings;
@@ -2270,40 +2285,35 @@ static void update_input_guncon(int port, int ret)
    //RETRO_DEVICE_ID_LIGHTGUN_AUX_B
    //Though not sure these are hooked up properly on the Pi
 
-   //ToDo
-   //Put the controller index back to port instead of hardcoding to 1 when the libretro overlay crash bug is fixed
-   //This is required for 2 player
-
    //GUNCON has 3 controls, Trigger,A,B which equal Circle,Start,Cross
 
    // Trigger
    //The 1 is hardcoded instead of port to prevent the overlay mouse button libretro crash bug
-   if (input_state_cb(1, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
+   if (input_state_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
    {
       in_keystate[port] |= (1 << DKEY_CIRCLE);
    }
 
    // A
-   if (input_state_cb(1, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT))
+   if (input_state_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT))
    {
       in_keystate[port] |= (1 << DKEY_START);
    }
 
    // B
-   if (input_state_cb(1, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE))
+   if (input_state_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE))
    {
       in_keystate[port] |= (1 << DKEY_CROSS);
    }
 
-   //The 1 is hardcoded instead of port to prevent the overlay mouse button libretro crash bug
-   int gunx = input_state_cb(1, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
-   int guny = input_state_cb(1, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
+   int gunx = input_state_cb(port, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+   int guny = input_state_cb(port, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
 
    //Mouse range is -32767 -> 32767
    //1% is about 655
    //Use the left analog stick field to store the absolute coordinates
-   in_analog_left[0][0] = (gunx * GunconAdjustRatioX) + (GunconAdjustX * 655);
-   in_analog_left[0][1] = (guny * GunconAdjustRatioY) + (GunconAdjustY * 655);
+   in_analog_left[port][0] = (gunx * GunconAdjustRatioX) + (GunconAdjustX * 655);
+   in_analog_left[port][1] = (guny * GunconAdjustRatioY) + (GunconAdjustY * 655);
 }
 
 static void update_input_negcon(int port, int ret)
@@ -2833,7 +2843,7 @@ void retro_init(void)
     * we have to do this because cache misses and some IO penalties
     * are not emulated. Warning: changing this may break compatibility. */
    cycle_multiplier = 175;
-#ifdef HAVE_PRE_ARMV7
+#if defined(HAVE_PRE_ARMV7) && !defined(_3DS)
    cycle_multiplier = 200;
 #endif
    pl_rearmed_cbs.gpu_peops.iUseDither = 1;
