@@ -589,11 +589,11 @@ static void update_multitap(void)
          multitap1 = 1;
       else if (strcmp(var.value, "disabled") == 0)
          multitap1 = 0;
-      else // 'auto' case
+      else if (strcmp(var.value, "automatic") == 0)
          auto_case = 1;
    }
    else
-      auto_case = 1;
+      multitap1 = 0;
 
    if (auto_case)
    {
@@ -612,11 +612,11 @@ static void update_multitap(void)
          multitap2 = 1;
       else if (strcmp(var.value, "disabled") == 0)
          multitap2 = 0;
-      else // 'auto' case
+      else if (strcmp(var.value, "automatic") == 0)
          auto_case = 1;
    }
    else
-      auto_case = 1;
+      multitap2 = 0;
 
    if (auto_case)
    {
@@ -2132,8 +2132,6 @@ static void update_variables(bool in_flight)
          unsigned i;
          struct retro_core_option_display option_display;
          char gpu_peops_option[][50] = {
-            "pcsx_rearmed_multitap1",
-            "pcsx_rearmed_multitap2",
             "pcsx_rearmed_negcon_deadzone",
             "pcsx_rearmed_negcon_response",
             "pcsx_rearmed_analog_axis_modifier",
@@ -2682,6 +2680,7 @@ static void loadPSXBios(void)
    unsigned useHLE = 0;
 
    const char *bios[] = {
+      "PS1_ROM", "ps1_rom",
       "PSXONPSP660", "psxonpsp660",
       "SCPH101", "scph101",
       "SCPH5501", "scph5501",
@@ -2726,11 +2725,19 @@ static void loadPSXBios(void)
       }
    }
 
-   if (useHLE || !found_bios)
+   if (!found_bios)
    {
-      const char *msg_str = "No PlayStation BIOS file found - add for better compatibility";
-
-      SysPrintf("no BIOS files found.\n");
+      const char *msg_str;
+      if (useHLE)
+      {
+         msg_str = "BIOS set to \'hle\' in core options - real BIOS will be ignored";
+         SysPrintf("Using HLE BIOS.\n");
+      }
+      else
+      {
+         msg_str = "No PlayStation BIOS file found - add for better compatibility";
+         SysPrintf("No BIOS files found.\n");
+      }
 
       if (msg_interface_version >= 1)
       {
@@ -2765,7 +2772,7 @@ void retro_init(void)
    msg_interface_version = 0;
    environ_cb(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION, &msg_interface_version);
 
-#ifdef __MACH__
+#if defined(__MACH__) && !defined(TVOS)
    // magic sauce to make the dynarec work on iOS
    syscall(SYS_ptrace, 0 /*PTRACE_TRACEME*/, 0, 0, 0);
 #endif

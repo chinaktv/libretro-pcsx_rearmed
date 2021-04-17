@@ -180,6 +180,10 @@ CFLAGS += -DGPU_PEOPS
 plugins/dfxvideo/gpulib_if.o: CFLAGS += -fno-strict-aliasing
 plugins/dfxvideo/gpulib_if.o: plugins/dfxvideo/prim.c plugins/dfxvideo/soft.c
 OBJS += plugins/dfxvideo/gpulib_if.o
+ifeq "$(THREAD_RENDERING)" "1"
+CFLAGS += -DTHREAD_RENDERING
+OBJS += plugins/gpulib/gpulib_thread_if.o
+endif
 endif
 ifeq "$(BUILTIN_GPU)" "unai"
 CFLAGS += -DGPU_UNAI
@@ -190,12 +194,12 @@ OBJS += plugins/gpu_unai/gpulib_if.o
 ifeq "$(ARCH)" "arm"
 OBJS += plugins/gpu_unai/gpu_arm.o
 endif
-plugins/gpu_unai/gpulib_if.o: CFLAGS += -DREARMED -O3 
-CC_LINK = $(CXX)
-endif
 ifeq "$(THREAD_RENDERING)" "1"
 CFLAGS += -DTHREAD_RENDERING
 OBJS += plugins/gpulib/gpulib_thread_if.o
+endif
+plugins/gpu_unai/gpulib_if.o: CFLAGS += -DREARMED -O3 
+CC_LINK = $(CXX)
 endif
 
 # cdrcimg
@@ -203,29 +207,10 @@ OBJS += plugins/cdrcimg/cdrcimg.o
 
 # libchdr
 ifeq "$(HAVE_CHD)" "1"
-CFLAGS += -Ideps/libchdr
+CFLAGS += -Ideps/libchdr/include
+CFLAGS += -Ideps/libchdr/include/libchdr
 OBJS += deps/crypto/md5.o
 OBJS += deps/crypto/sha1.o
-OBJS += deps/flac-1.3.2/src/libFLAC/bitmath.o
-OBJS += deps/flac-1.3.2/src/libFLAC/bitreader.o
-OBJS += deps/flac-1.3.2/src/libFLAC/cpu.o
-OBJS += deps/flac-1.3.2/src/libFLAC/crc.o
-OBJS += deps/flac-1.3.2/src/libFLAC/fixed.o
-OBJS += deps/flac-1.3.2/src/libFLAC/fixed_intrin_sse2.o
-OBJS += deps/flac-1.3.2/src/libFLAC/fixed_intrin_ssse3.o
-OBJS += deps/flac-1.3.2/src/libFLAC/float.o
-OBJS += deps/flac-1.3.2/src/libFLAC/format.o
-OBJS += deps/flac-1.3.2/src/libFLAC/lpc.o
-OBJS += deps/flac-1.3.2/src/libFLAC/lpc_intrin_avx2.o
-OBJS += deps/flac-1.3.2/src/libFLAC/lpc_intrin_sse2.o
-OBJS += deps/flac-1.3.2/src/libFLAC/lpc_intrin_sse41.o
-OBJS += deps/flac-1.3.2/src/libFLAC/lpc_intrin_sse.o
-OBJS += deps/flac-1.3.2/src/libFLAC/md5.o
-OBJS += deps/flac-1.3.2/src/libFLAC/memory.o
-OBJS += deps/flac-1.3.2/src/libFLAC/metadata_iterators.o
-OBJS += deps/flac-1.3.2/src/libFLAC/metadata_object.o
-OBJS += deps/flac-1.3.2/src/libFLAC/stream_decoder.o
-OBJS += deps/flac-1.3.2/src/libFLAC/window.o
 OBJS += deps/lzma-16.04/C/Alloc.o
 OBJS += deps/lzma-16.04/C/Bra86.o
 OBJS += deps/lzma-16.04/C/Bra.o
@@ -239,21 +224,13 @@ OBJS += deps/lzma-16.04/C/LzmaDec.o
 OBJS += deps/lzma-16.04/C/LzmaEnc.o
 OBJS += deps/lzma-16.04/C/LzmaLib.o
 OBJS += deps/lzma-16.04/C/Sort.o
-OBJS += deps/libchdr/bitstream.o
-OBJS += deps/libchdr/cdrom.o
-OBJS += deps/libchdr/chd.o
-OBJS += deps/libchdr/flac.o
-OBJS += deps/libchdr/huffman.o
-
-ifneq (,$(findstring win,$(platform)))
-  CFLAGS += -DHAVE_FSEEKO
-  OBJS += deps/flac-1.3.2/src/libFLAC/windows_unicode_filenames.o
-else
-  CFLAGS += -DHAVE_SYS_PARAM_H
-endif
-
-CFLAGS += -Ideps/crypto -Ideps/flac-1.3.2/include -Ideps/flac-1.3.2/src/libFLAC/include -Ideps/flac-1.3.2/src/libFLAC/include -Ideps/lzma-16.04/C
-CFLAGS += -DHAVE_CHD -D'PACKAGE_VERSION="1.3.2"' -DFLAC__HAS_OGG=0 -DFLAC__NO_DLL -DHAVE_LROUND -DHAVE_STDINT_H -DHAVE_STDLIB_H -DFLAC__NO_DLL -D_7ZIP_ST
+OBJS += deps/libchdr/src/libchdr_bitstream.o
+OBJS += deps/libchdr/src/libchdr_cdrom.o
+OBJS += deps/libchdr/src/libchdr_chd.o
+OBJS += deps/libchdr/src/libchdr_flac.o
+OBJS += deps/libchdr/src/libchdr_huffman.o
+CFLAGS += -Ideps/crypto -Ideps/lzma-16.04/C
+CFLAGS += -DHAVE_CHD -D_7ZIP_ST
 LDFLAGS += -lm
 endif
 
